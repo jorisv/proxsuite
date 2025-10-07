@@ -1,0 +1,409 @@
+# gersemi: off
+cmake_minimum_required(VERSION 3.22..4.1)
+
+# Usage: require_variable(<varname> [<message>])
+# Example: require_variable(MY_VAR "MY_VAR must be set to build this project")
+# Example: require_variable(MY_VAR) # Will print "MY_VAR is not defined."
+function(require_variable varname)
+    if(NOT DEFINED ${varname})
+        if(ARGC EQUAL 1)
+            set(msg "${ARGV0} is not defined.")
+        else()
+            set(msg "${ARGV1}.")
+        endif()
+        message(FATAL_ERROR "${msg}")
+    endif()
+endfunction()
+
+
+function(xxx_declare_standard_options)
+    option(BUILD_TESTING "Build the tests" ${PROJECT_IS_TOP_LEVEL})
+    option(BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+    option(BUILD_BENCHMARK "Build the benchmarks" ${PROJECT_IS_TOP_LEVEL})
+    option(BUILD_DOCUMENTATION "Build the documentation." OFF)
+    option(INSTALL_LIBRARY "Install the project (library + config files)" ON)
+    option(INSTALL_DOCUMENTATION "Install the documentation" OFF)
+    option(INSTALL_PACKAGE_XML "Install package.xml file" OFF)
+    option(INSTALL_AMENT_XML "Install amentxml file" OFF)
+endfunction()
+
+
+
+# Usage: xxx_configure_default_build_type(<default_build_type>)
+# Valid values for <default_build_type> are: Debug, Release, MinSizeRel, RelWithDebInfo
+# Example: xxx_configure_default_build_type(RelWithDebInfo)
+function(xxx_configure_default_build_type default_build_type)
+    set(allowed_build_types
+        Debug
+        Release
+        MinSizeRel
+        RelWithDebInfo
+    )
+    if(NOT default_build_type IN_LIST allowed_build_types)
+        message(FATAL_ERROR "Invalid build type: ${default_build_type}, valid values are: ${allowed_build_types}")
+    endif()
+
+    if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+        message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+        set(CMAKE_BUILD_TYPE ${default_build_type} CACHE STRING "Choose the type of build." FORCE)
+        # set the possible values of build type for cmake-gui
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${allowed_build_types})
+    endif()
+endfunction()
+
+function(xxx_configure_default_binary_dirs)
+    # On windows, librairies (.dll, .lib) and executables (.exe) are in the same directory
+    # On unix, we separate them in bin/ and lib/
+    if(WIN32)
+        set(bin_dir ${CMAKE_BINARY_DIR})
+        set(lib_dir ${CMAKE_BINARY_DIR})
+    else()
+        set(bin_dir ${CMAKE_BINARY_DIR}/bin)
+        set(lib_dir ${CMAKE_BINARY_DIR}/lib)
+    endif()
+
+    # doc: https://cmake.org/cmake/help/latest/variable/CMAKE_RUNTIME_OUTPUT_DIRECTORY.html
+    # Sets the default output directory for runtime (.exe, .dll) and archive (.lib, .a) targets.
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${bin_dir} CACHE PATH "" INTERNAL)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${lib_dir} CACHE PATH "" INTERNAL)
+
+    set(config Debug Release RelWithDebInfo MinSizeRel)
+    foreach(conf ${config})
+        string(TOUPPER ${conf} conf_upper)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${conf_upper} ${bin_dir} CACHE PATH "Output directory for runtime targets in ${conf} configuration." INTERNAL)
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${conf_upper} ${lib_dir} CACHE PATH "Output directory for library targets in ${conf} configuration." INTERNAL)
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${conf_upper} ${lib_dir} CACHE PATH "Output directory for archive targets in ${conf} configuration." INTERNAL)
+    endforeach()
+
+    set(CMAKE_BINARY_BINDIR ${bin_dir} CACHE PATH "Directory for building executables" INTERNAL)
+    set(CMAKE_BINARY_LIBDIR ${lib_dir} CACHE PATH "Directory for building libraries" INTERNAL)
+endfunction()
+
+function(xxx_configure_default_install_dirs)
+    include(GNUInstallDirs)
+
+    if(WIN32)
+        set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_BINDIR} CACHE PATH "Installation directory for dlls" FORCE)
+    endif()
+
+    message("
+
+    CMAKE_INSTALL_PREFIX        : ${CMAKE_INSTALL_PREFIX}
+    CMAKE_INSTALL_BINDIR        : ${CMAKE_INSTALL_BINDIR}
+    CMAKE_INSTALL_LIBDIR        : ${CMAKE_INSTALL_LIBDIR}
+    CMAKE_INSTALL_INCLUDEDIR    : ${CMAKE_INSTALL_INCLUDEDIR}
+    CMAKE_INSTALL_DATAROOTDIR   : ${CMAKE_INSTALL_DATAROOTDIR}
+    CMAKE_INSTALL_DOCDIR        : ${CMAKE_INSTALL_DOCDIR}
+
+    ")
+endfunction()
+
+
+function(xxx_configure_default_install_prefix default_install_prefix)
+    if(NOT default_install_prefix)
+        message(FATAL_ERROR "Use: xxx_configure_default_install_prefix(<default_install_prefix>)")
+    endif()
+
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        message(STATUS "Setting default install prefix to '${default_install_prefix}'")
+        set(CMAKE_INSTALL_PREFIX ${default_install_prefix} CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
+        mark_as_advanced(CMAKE_INSTALL_PREFIX)
+    endif()
+endfunction()
+
+# Usage: xxx_target_generate_config_header()
+function(xxx_target_generate_config_header target_name)
+    require_variable(PROJECT_NAME "PROJECT_NAME must be defined before calling xxx_target_generate_config_header")
+    require_variable(PROJECT_VERSION "PROJECT_VERSION must be defined before calling xxx_target_generate_config_header")
+    require_variable(PROJECT_VERSION_MAJOR "PROJECT_VERSION_MAJOR must be defined before calling xxx_target_generate_config_header")
+    require_variable(PROJECT_VERSION_MINOR "PROJECT_VERSION_MINOR must be defined before calling xxx_target_generate_config_header")
+    require_variable(PROJECT_VERSION_PATCH "PROJECT_VERSION_PATCH must be defined before calling xxx_target_generate_config_header")
+    require_variable(CMAKE_BINARY_DIR "CMAKE_BINARY_DIR must be defined before calling xxx_target_generate_config_header")
+    require_variable(CMAKE_INSTALL_INCLUDEDIR "CMAKE_INSTALL_INCLUDEDIR must be defined before calling xxx_target_generate_config_header with INSTALL option")
+
+    if(NOT TARGET ${target_name})
+        message(FATAL_ERROR "Target ${target_name} does not exist.")
+    endif()
+
+    # The generated header file location in the build directory
+    set(output_file ${CMAKE_BINARY_DIR}/generated/include/${PROJECT_NAME}/config.hpp)
+
+    # The default install location
+    set(install_location ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+
+    # We need PROJECT_NAME in uppercase to match the maestro convention for macro names
+    string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
+
+    # ref: https://cmake.org/cmake/help/latest/variable/CMAKE_CURRENT_FUNCTION_LIST_DIR.html
+    set(input_file ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/config.hpp.in)
+
+    if(NOT EXISTS ${input_file})
+        message(FATAL_ERROR "Input file ${input_file} does not exist.")
+    endif()
+
+    configure_file(${input_file} ${output_file} @ONLY)
+
+    get_target_property(type ${target_name} TYPE)
+    set(visibility PRIVATE)
+    if(${type} STREQUAL "INTERFACE_LIBRARY")
+        set(visibility INTERFACE)
+    endif()
+
+    target_include_directories(${target_name} ${visibility} $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated/include>)
+    install(FILES ${output_file} DESTINATION ${install_location})
+endfunction()
+
+function(xxx_target_set_standard_compile_options target_name visibility)
+    # visibility is either PRIVATE, PUBLIC or INTERFACE
+    set(vs PRIVATE PUBLIC INTERFACE)
+    if(NOT visibility IN_LIST vs)
+        message(FATAL_ERROR "visibility must be one of PRIVATE, PUBLIC or INTERFACE")
+    endif()
+    
+    # In CMake >= 3.26, use CMAKE_CXX_COMPILER_FRONTEND_VARIANT¶
+    # ref: https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_FRONTEND_VARIANT.html
+    # ref: https://gitlab.kitware.com/cmake/cmake/-/issues/19724
+    if(CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+        set(CXX_COMPILER_ID "MSVC")
+    endif()
+
+    if(CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_options(${target_name} ${visibility}
+            /W4 # Enable most warnings
+            /wd4250 # "Inherits via dominance" - happens with diamond inheritance, not really an issue
+            /wd4706 # assignment within conditional expression
+            /wd5030 # pointer or reference to potentially throwing function used in noexcept context
+            /wd4996 # function may be unsafe
+            /we4834 # discarding return value of function with 'nodiscard' attribute
+            /we4062 # enumerator 'xyz' in switch of enum 'abc' is not handled
+        )
+    elseif(CXX_COMPILER_ID STREQUAL "GNU" OR CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${target_name} ${visibility}
+            -Wall   # Enable most warnings
+            -Wextra # Enable extra warnings
+            -Wconversion # Warn on type conversions that may lose information
+            -Wpedantic # Warn on non-standard C++ usage
+        )
+    endif()
+endfunction()
+
+function(xxx_target_enforce_msvc_conformance target_name)
+    if(NOT TARGET ${target_name})
+        message(FATAL_ERROR "Target ${target_name} does not exist.")
+    endif()
+
+    get_target_property(type ${target_name} TYPE)
+    set(visibility PRIVATE)
+    if(${type} STREQUAL "INTERFACE_LIBRARY")
+        set(visibility INTERFACE)
+    endif()
+
+    target_compile_options(${target_name} ${visibility}
+        $<$<CXX_COMPILER_ID:MSVC>:
+        /permissive-  # Standards conformance
+        /Zc:__cplusplus # Needed to have __cplusplus set correctly
+        /EHsc  # Enable C++ exceptions standard conformance
+        /bigobj # To avoid "fatal error C1128: number of sections exceeded object file format limit"
+        >
+    )
+endfunction()
+
+function(xxx_target_treat_all_warnings_as_errors target_name visibility)
+    # visibility is either PRIVATE, PUBLIC or INTERFACE
+    set(vs PRIVATE PUBLIC INTERFACE)
+    if(NOT visibility IN_LIST vs)
+        message(FATAL_ERROR "visibility must be one of PRIVATE, PUBLIC or INTERFACE")
+    endif()
+
+    if(NOT TARGET ${target_name})
+        message(FATAL_ERROR "Target ${target_name} does not exist.")
+    endif()
+
+    if(CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_options(${target_name} ${visibility}
+            /WX # Treat all warnings as errors
+        )
+    elseif(CXX_COMPILER_ID STREQUAL "GNU" OR CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${target_name} ${visibility}
+            -Werror # Treat all warnings as errors
+        )
+    endif()
+endfunction()
+
+# Usage: xxx_find_package(<package> [version] [REQUIRED] [COMPONENTS ...] [EXPECTED_TARGETS <target1> <target2> ...])
+# Example: xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen)
+function(xxx_find_package)
+    message("[${ARGV0}] Executing xxx_find_package with args ${ARGV}")
+
+    # Parse only EXPECTED_TARGET; leave everything else untouched
+    cmake_parse_arguments(arg "" "" "EXPECTED_TARGETS" ${ARGV})
+
+    # If all targets are already available, skip the find_package call)
+    set(all_targets_available True)
+    foreach(target ${arg_EXPECTED_TARGETS})
+        if(NOT TARGET ${target})
+            set(all_targets_available False)
+            break()
+        endif()
+    endforeach()
+    if(all_targets_available AND arg_EXPECTED_TARGETS)
+        message("   All expected targets from package '${ARGV0}' are already available, skipping find_package call.")
+        return()
+    endif()
+
+    # Call find_package with the provided arguments
+    string(REPLACE ";" " " fp_pp "${arg_UNPARSED_ARGUMENTS}")
+    message("   Executing find_package(${fp_pp})")
+
+    # The actual call to find_package
+    find_package(${arg_UNPARSED_ARGUMENTS})
+
+    # Pkg name is the first argument of FIND_PACKAGE_ARGS
+    set(package_name ${ARGV0})
+
+    # Save package into the global summary property
+    get_property(package GLOBAL PROPERTY _xxx_project_packages)
+    if(NOT package)
+        set(package "")
+    endif()
+    list(APPEND package "${package_name}")
+    list(REMOVE_DUPLICATES package)
+    set_property(GLOBAL PROPERTY _xxx_project_packages "${package}")
+
+    # Save the package expected targets into a global summary property
+    set_property(GLOBAL PROPERTY _xxx_${package_name}_expected_targets "${arg_EXPECTED_TARGETS}")
+
+    # Check if the expected targets are available
+    set(missing_targets "")
+    foreach(target ${arg_EXPECTED_TARGETS})
+    message("   Checking for target '${target}' from package '${package_name}'...")
+        if(NOT TARGET ${target})
+            list(APPEND missing_targets "${target}")
+            message("       ❌ Target '${target}' from package '${package_name}' is MISSING.")
+        else()
+            message("       ✅ Target '${target}' from package '${package_name}' is available.")
+        endif()
+    endforeach()
+
+    if(missing_targets)
+        string(REPLACE ";" ", " missing_targets_pp "${missing_targets}")
+        message(WARNING "The following expected targets from package '${package_name}' are missing: ${missing_targets_pp}")
+    endif()
+endfunction()
+
+function(xxx_print_dependency_summary)
+    include(CMakePrintHelpers)
+
+    # Get the list of packages found via xxx_find_package via the global property _xxx_project_packages
+    get_property(packages GLOBAL PROPERTY _xxx_project_packages)
+    if(NOT packages)
+        message(STATUS "No dependencies found via xxx_find_package.")
+        return()
+    endif()
+
+    message(STATUS "Dependencies found via xxx_find_package:")
+    foreach(package_name ${packages})
+        # Try to find the _xxx_<package_name>_expected_targets property
+        get_property(expected_targets GLOBAL PROPERTY _xxx_${package_name}_expected_targets)
+        if(NOT expected_targets)
+            set(expected_targets "None")
+        endif()
+
+        # Replace ; by , for better readability
+        string(REPLACE ";" " " expected_targets_pp "${expected_targets}")
+        message(STATUS "    package [${package_name}] ==> targets [${expected_targets_pp}]")
+
+        # Print target properties
+        if(expected_targets STREQUAL "None")
+            continue()
+        endif()
+        cmake_print_properties(TARGETS ${expected_targets} PROPERTIES 
+            LOCATION
+            INCLUDE_DIRECTORIES
+            COMPILE_DEFINITIONS
+            COMPILE_OPTIONS
+            LINK_LIBRARIES
+            LINK_OPTIONS
+            INTERFACE_INCLUDE_DIRECTORIES
+            INTERFACE_COMPILE_DEFINITIONS
+            INTERFACE_COMPILE_OPTIONS
+            INTERFACE_LINK_LIBRARIES
+            INTERFACE_LINK_OPTIONS
+        )
+    endforeach()
+endfunction()
+
+function(xxx_generate_cmake_module_files)
+    require_variable(PROJECT_NAME "PROJECT_NAME must be defined before calling xxx_generate_cmake_module_files")
+    require_variable(PROJECT_VERSION "PROJECT_VERSION must be defined before calling xxx_generate_cmake_module_files")
+
+    include(CMakePackageConfigHelpers)
+
+    get_property(packages GLOBAL PROPERTY _xxx_project_packages)
+    if(NOT packages)
+        message(STATUS "No dependencies found via xxx_find_package.")
+        return()
+    endif()
+
+    set(${PROJECT_NAME}_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+    set(fd "")
+    foreach(package_name ${packages})
+        # Try to find the _xxx_<package_name>_expected_targets property
+        get_property(expected_targets GLOBAL PROPERTY _xxx_${package_name}_expected_targets)
+
+        if(NOT expected_targets)
+            list(APPEND fd "find_dependency(${package_name} REQUIRED)")
+        else()
+            set(cond "")
+            foreach(target IN LISTS expected_targets)
+                if(cond STREQUAL "")
+                    set(cond "NOT TARGET ${target}")
+                else()
+                    set(cond "${cond} OR NOT TARGET ${target}")
+                endif()
+            endforeach()
+
+            list(APPEND fd "
+if(${cond})
+    find_dependency(${package_name} REQUIRED)
+endif()
+")
+        endif()
+    endforeach()
+
+    string(REPLACE ";" "\n" xxx_find_dependencies "${fd}")
+
+    # <package>-targets.cmake
+    export(EXPORT ${PROJECT_NAME}-targets
+        FILE ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+    )
+
+    # <package>-config.cmake
+    configure_package_config_file(
+        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake
+        INSTALL_DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}
+        NO_SET_AND_CHECK_MACRO
+        NO_CHECK_REQUIRED_COMPONENTS_MACRO
+    )
+
+    # <package>-version.cmake
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-version.cmake
+        COMPATIBILITY AnyNewerVersion
+    )
+
+    # Install the 3 cmake module files
+    install(
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-version.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake
+        DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}
+    )
+endfunction()
+
+
+# gersemi: on
