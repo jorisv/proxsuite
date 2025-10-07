@@ -27,7 +27,30 @@ function(xxx_declare_standard_options)
     option(INSTALL_AMENT_XML "Install amentxml file" OFF)
 endfunction()
 
-
+function(xxx_display_debug_infos)
+    message(DEBUG "
+CMake version    | CMAKE_VERSION                        => ${CMAKE_VERSION}
+CMake path       | CMAKE_COMMAND                        => ${CMAKE_COMMAND}
+CMake generator  | CMAKE_GENERATOR                      => ${CMAKE_GENERATOR}
+CMake build tool | CMAKE_BUILD_TOOL                     => ${CMAKE_BUILD_TOOL}
+C compiler       | CMAKE_C_COMPILER                     => ${CMAKE_C_COMPILER}
+C compiler ID    | CMAKE_C_COMPILER_ID                  => ${CMAKE_C_COMPILER_ID}
+C compiler FE    | CMAKE_C_COMPILER_FRONTEND_VARIANT    => ${CMAKE_C_COMPILER_FRONTEND_VARIANT}
+C compiler Ver   | CMAKE_C_COMPILER_VERSION             => ${CMAKE_C_COMPILER_VERSION}
+C++ compiler     | CMAKE_CXX_COMPILER                   => ${CMAKE_CXX_COMPILER}
+C++ compiler ID  | CMAKE_CXX_COMPILER_ID                => ${CMAKE_CXX_COMPILER_ID}
+C++ compiler FE  | CMAKE_CXX_COMPILER_FRONTEND_VARIANT  => ${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}
+C++ compiler Ver | CMAKE_CXX_COMPILER_VERSION           => ${CMAKE_CXX_COMPILER_VERSION}
+CMake build tool | CMAKE_BUILD_TOOL                     => ${CMAKE_BUILD_TOOL}
+Host   OS        | CMAKE_HOST_SYSTEM_NAME               => ${CMAKE_HOST_SYSTEM_NAME}
+       Arch      | CMAKE_HOST_SYSTEM_PROCESSOR          => ${CMAKE_HOST_SYSTEM_PROCESSOR}
+Target OS        | CMAKE_SYSTEM_NAME                    => ${CMAKE_SYSTEM_NAME}
+       Arch      | CMAKE_SYSTEM_PROCESSOR               => ${CMAKE_SYSTEM_PROCESSOR}
+Cross Compiling  | CMAKE_CROSSCOMPILING                 => ${CMAKE_CROSSCOMPILING}
+Toolchain file   | CMAKE_TOOLCHAIN_FILE                 => ${CMAKE_TOOLCHAIN_FILE}
+    ")
+endfunction()
+xxx_display_debug_infos()
 
 # Usage: xxx_configure_default_build_type(<default_build_type>)
 # Valid values for <default_build_type> are: Debug, Release, MinSizeRel, RelWithDebInfo
