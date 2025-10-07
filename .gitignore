@@ -1,4 +1,8 @@
 build*
+install*
 Xcode*
 *.pyc
 .vscode*
+.cache
+compile_commands.json
+.ruff_cache
