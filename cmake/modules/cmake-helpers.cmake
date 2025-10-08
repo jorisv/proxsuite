@@ -263,14 +263,14 @@ function(xxx_find_package)
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
     # Allow to skip find package
-    set(skip_find_package False)
+    set(skip False)
     foreach(cond ${arg_DEPENDS_ON})
         if(NOT ${${cond}})
-            set(skip_find_package True)
+            set(skip True)
             break()
         endif()
     endforeach()
-    if(skip_find_package)
+    if(skip)
         return()
     endif()
 
@@ -294,6 +294,10 @@ function(xxx_find_package)
     # The actual call to find_package
     find_package(${arg_UNPARSED_ARGUMENTS})
 
+    if(NOT arg_EXPORT_IN_CONFIG)
+        return()
+    endif()
+
     # Pkg name is the first argument of FIND_PACKAGE_ARGS
     set(package_name ${ARGV0})
 
@@ -308,6 +312,7 @@ function(xxx_find_package)
 
     # Save the package expected targets into a global summary property
     set_property(GLOBAL PROPERTY _xxx_${package_name}_expected_targets "${arg_EXPECTED_TARGETS}")
+    set_property(GLOBAL PROPERTY _xxx_${package_name}_find_package_args "${arg_UNPARSED_ARGUMENTS}")
 
     # Check if the expected targets are available
     set(missing_targets "")
@@ -387,9 +392,11 @@ function(xxx_generate_cmake_module_files)
     foreach(package_name ${packages})
         # Try to find the _xxx_<package_name>_expected_targets property
         get_property(expected_targets GLOBAL PROPERTY _xxx_${package_name}_expected_targets)
-
+        get_property(find_package_args GLOBAL PROPERTY _xxx_${package_name}_find_package_args)
+        string(REPLACE ";" " " find_package_args "${find_package_args}")
+        
         if(NOT expected_targets)
-            list(APPEND fd "find_dependency(${package_name} REQUIRED)")
+            list(APPEND fd "find_dependency(${find_package_args})")
         else()
             set(cond "")
             foreach(target IN LISTS expected_targets)
@@ -402,7 +409,7 @@ function(xxx_generate_cmake_module_files)
 
             list(APPEND fd "
 if(${cond})
-    find_dependency(${package_name} REQUIRED)
+    find_dependency(${find_package_args})
 endif()
 ")
         endif()

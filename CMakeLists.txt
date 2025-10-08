@@ -92,7 +92,7 @@ option(
 ############################################################
 
 # Eigen3
-xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen)
+xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen EXPORT_IN_CONFIG)
 
 # Catch2
 if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
@@ -132,22 +132,24 @@ endif()
 
 
 # simde
-#if(BUILD_WITH_VECTORIZATION_SUPPORT)
-    xxx_find_package(simde REQUIRED 
-      EXPECTED_TARGETS simde::simde 
-      DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
-      EXPORT_IN_CONFIG)
-#endif()
+xxx_find_package(simde REQUIRED 
+    EXPECTED_TARGETS simde::simde 
+    DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
+    EXPORT_IN_CONFIG)
 
 # matio
-if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
-    xxx_find_package(matio REQUIRED EXPECTED_TARGETS matio::matio) # matio does not provide a config file (yet)
-endif()
+xxx_find_package(matio REQUIRED 
+  EXPECTED_TARGETS matio::matio
+  DEPENDS_ON BUILD_TESTING PROJECT_IS_TOP_LEVEL
+  EXPORT_IN_CONFIG
+)
 
 # OpenMP
-if(BUILD_WITH_OPENMP_SUPPORT)
-  xxx_find_package(OpenMP REQUIRED EXPECTED_TARGETS OpenMP::OpenMP_CXX)
-endif()
+xxx_find_package(OpenMP REQUIRED 
+  EXPECTED_TARGETS OpenMP::OpenMP_CXX
+  DEPENDS_ON BUILD_WITH_OPENMP_SUPPORT
+  EXPORT_IN_CONFIG
+)
 
 # Doxygen + Graphviz (dot)
 if(BUILD_DOCUMENTATION AND PROJECT_IS_TOP_LEVEL)
@@ -235,7 +237,7 @@ if(PROXSUITE_INSTALL)
 
   # Install libraries
   xxx_install_target(proxsuite)
-  
+
   xxx_install_target(proxsuite-vectorized 
     DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
   )
