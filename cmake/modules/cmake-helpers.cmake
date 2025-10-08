@@ -407,8 +407,8 @@ function(xxx_generate_cmake_module_files)
                 endif()
             endforeach()
 
-            list(APPEND fd "
-if(${cond})
+            list(APPEND fd
+"if(${cond})
     find_dependency(${find_package_args})
 endif()
 ")
