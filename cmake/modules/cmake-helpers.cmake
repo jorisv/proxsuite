@@ -259,7 +259,7 @@ function(xxx_find_package)
     string(ASCII 27 Esc)
     message("${Esc}[1;34m" "[${ARGV0}]" "${Esc}[m")
     set(CMAKE_MESSAGE_INDENT "  ")
-    message("Executing xxx_find_package with args ${ARGV}")
+    message(DEBUG "Executing xxx_find_package with args ${ARGV}")
 
     set(options EXPORT_IN_CONFIG)
     set(oneValueArgs)
