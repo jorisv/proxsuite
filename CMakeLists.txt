@@ -101,9 +101,11 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
 endif()
 
 # cereal (Serialization)
-if(BUILD_WITH_SERIALIZATION)
-    xxx_find_package(cereal CONFIG REQUIRED EXPECTED_TARGETS cereal::cereal)
-endif()
+xxx_find_package(cereal CONFIG REQUIRED 
+  EXPECTED_TARGETS cereal::cereal
+  DEPENDS_ON BUILD_WITH_SERIALIZATION
+  EXPORT_IN_CONFIG
+)
 
 # nanobind (Python bindings)
 if(BUILD_PYTHON_INTERFACE)
