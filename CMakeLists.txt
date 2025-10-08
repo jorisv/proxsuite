@@ -119,9 +119,6 @@ if(BUILD_PYTHON_INTERFACE)
     # Python_INCLUDE_DIRS with target include dirs
     get_target_property(Python_INCLUDE_DIRS Python::Module INTERFACE_INCLUDE_DIRECTORIES)
     message(STATUS "[proxsuite] Python include directories: ${Python_INCLUDE_DIRS}")
-    # Python_LIBRARIES with target location
-    get_target_property(Python_LIBRARIES Python::Module LOCATION)
-    message(STATUS "[proxsuite] Python library: ${Python_LIBRARIES}")
     # Detect the installed nanobind package and import it into CMake
     # ref: https://nanobind.readthedocs.io/en/latest/building.html#finding-nanobind
     execute_process(
@@ -135,9 +132,12 @@ endif()
 
 
 # simde
-if(BUILD_WITH_VECTORIZATION_SUPPORT)
-    xxx_find_package(simde REQUIRED EXPECTED_TARGETS simde::simde)  # simde does not provide a config file (yet)
-endif()
+#if(BUILD_WITH_VECTORIZATION_SUPPORT)
+    xxx_find_package(simde REQUIRED 
+      EXPECTED_TARGETS simde::simde 
+      DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
+      EXPORT_IN_CONFIG)
+#endif()
 
 # matio
 if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
@@ -234,12 +234,10 @@ if(PROXSUITE_INSTALL)
   )
 
   # Install libraries
-  install(
-    TARGETS proxsuite proxsuite-vectorized
-    EXPORT ${PROJECT_NAME}-targets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  xxx_install_target(proxsuite)
+  
+  xxx_install_target(proxsuite-vectorized 
+    DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
   )
 
   # Generate and install <package>-config.cmake, <package>-version.cmake and <package>-targets.cmake
@@ -247,4 +245,4 @@ if(PROXSUITE_INSTALL)
 endif()
 
 
-xxx_print_dependency_summary()
+#xxx_print_dependency_summary()

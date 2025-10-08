@@ -257,9 +257,22 @@ endfunction()
 # Example: xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen)
 function(xxx_find_package)
     message("[${ARGV0}] Executing xxx_find_package with args ${ARGV}")
+    set(options EXPORT_IN_CONFIG)
+    set(oneValueArgs)
+    set(multiValueArgs EXPECTED_TARGETS DEPENDS_ON)    # Parse only EXPECTED_TARGET; leave everything else untouched
+    cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
-    # Parse only EXPECTED_TARGET; leave everything else untouched
-    cmake_parse_arguments(arg "" "" "EXPECTED_TARGETS" ${ARGV})
+    # Allow to skip find package
+    set(skip_find_package False)
+    foreach(cond ${arg_DEPENDS_ON})
+        if(NOT ${${cond}})
+            set(skip_find_package True)
+            break()
+        endif()
+    endforeach()
+    if(skip_find_package)
+        return()
+    endif()
 
     # If all targets are already available, skip the find_package call)
     set(all_targets_available True)
@@ -428,5 +441,40 @@ endif()
     )
 endfunction()
 
+function(xxx_install_target target_name)
+    require_variable(PROJECT_NAME "PROJECT_NAME must be defined before calling xxx_install_target")
+    require_variable(CMAKE_INSTALL_LIBDIR "CMAKE_INSTALL_LIBDIR must be defined before calling xxx_install_target")
+    require_variable(CMAKE_INSTALL_BINDIR "CMAKE_INSTALL_BINDIR must be defined before calling xxx_install_target")
+    require_variable(CMAKE_INSTALL_INCLUDEDIR "CMAKE_INSTALL_INCLUDEDIR must be defined before calling xxx_install_target")
+
+    set(options)
+    set(oneValueArgs)
+    set(multiValueArgs DEPENDS_ON)
+    cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+    # Allow to skip find package
+    set(skip False)
+    foreach(cond ${arg_DEPENDS_ON})
+        if(NOT ${${cond}})
+            set(skip True)
+            break()
+        endif()
+    endforeach()
+    if(skip)
+        return()
+    endif()
+
+    if(NOT TARGET ${target_name})
+        message(FATAL_ERROR "Target ${target_name} does not exist.")
+    endif()
+
+    install(TARGETS ${target_name}
+        EXPORT ${PROJECT_NAME}-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+endfunction()
 
 # gersemi: on
