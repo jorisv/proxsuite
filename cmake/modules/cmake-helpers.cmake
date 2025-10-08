@@ -256,11 +256,20 @@ endfunction()
 # Usage: xxx_find_package(<package> [version] [REQUIRED] [COMPONENTS ...] [EXPECTED_TARGETS <target1> <target2> ...])
 # Example: xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen)
 function(xxx_find_package)
-    message("[${ARGV0}] Executing xxx_find_package with args ${ARGV}")
+    string(ASCII 27 Esc)
+    message("${Esc}[1;34m" "[${ARGV0}]" "${Esc}[m")
+    set(CMAKE_MESSAGE_INDENT "  ")
+    message("Executing xxx_find_package with args ${ARGV}")
+
     set(options EXPORT_IN_CONFIG)
     set(oneValueArgs)
     set(multiValueArgs EXPECTED_TARGETS DEPENDS_ON)    # Parse only EXPECTED_TARGET; leave everything else untouched
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+    # message("   EXPECTED_TARGETS.  : ${arg_EXPECTED_TARGETS}")
+    # message("   DEPENDS_ON         : ${arg_DEPENDS_ON}")
+    # message("   UNPARSED_ARGUMENTS : ${arg_UNPARSED_ARGUMENTS}")
+    # message("   EXPORT_IN_CONFIG.  : ${arg_EXPORT_IN_CONFIG}")
 
     # Allow to skip find package
     set(skip False)
@@ -271,6 +280,7 @@ function(xxx_find_package)
         endif()
     endforeach()
     if(skip)
+        message("Skipping find_package(${ARGV0}) because one of the conditions in DEPENDS_ON ${arg_DEPENDS_ON} is false.")
         return()
     endif()
 
@@ -283,13 +293,13 @@ function(xxx_find_package)
         endif()
     endforeach()
     if(all_targets_available AND arg_EXPECTED_TARGETS)
-        message("   All expected targets from package '${ARGV0}' are already available, skipping find_package call.")
+        message("All expected targets from package '${ARGV0}' are already available, skipping find_package call.")
         return()
     endif()
 
     # Call find_package with the provided arguments
     string(REPLACE ";" " " fp_pp "${arg_UNPARSED_ARGUMENTS}")
-    message("   Executing find_package(${fp_pp})")
+    message("Executing find_package(${fp_pp})")
 
     # The actual call to find_package
     find_package(${arg_UNPARSED_ARGUMENTS})
@@ -317,12 +327,12 @@ function(xxx_find_package)
     # Check if the expected targets are available
     set(missing_targets "")
     foreach(target ${arg_EXPECTED_TARGETS})
-    message("   Checking for target '${target}' from package '${package_name}'...")
+        message("Checking for target '${target}'...")
         if(NOT TARGET ${target})
             list(APPEND missing_targets "${target}")
-            message("       ❌ Target '${target}' from package '${package_name}' is MISSING.")
+            message("Checking for target '${target}'... ❌ not found.")
         else()
-            message("       ✅ Target '${target}' from package '${package_name}' is available.")
+            message("Checking for target '${target}'... ✅ found.")
         endif()
     endforeach()
 
