@@ -56,6 +56,10 @@ cmd = ["ctest", "--test-dir", "build/RelWithDebInfo", "--output-on-failure"]
 depends-on = ["build"]
 cmd = ["cmake", "--install", "build/RelWithDebInfo"]
 
+[tasks.test-packaging]
+depends-on = ["install"]
+cmd = "cmake -S test/packaging/cmake -B build/RelWithDebInfo/test-packaging && cmake --build build/RelWithDebInfo/test-packaging"
+
 [tasks.doc]
 depends-on = ["configure"]
 cmd = ["cmake", "--build", "build/RelWithDebInfo", "--target", "doc"]

@@ -14,33 +14,20 @@ project(
 set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
 include(CTest)
 include(CMakeDependentOption)
-include(FetchContent)
 
 # Import Inria-provided helper functions
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
-include(cmake-helpers)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-helpers.cmake)
 xxx_configure_default_build_type(RelWithDebInfo)
 xxx_configure_default_install_prefix("${CMAKE_BINARY_DIR}/install")
 xxx_configure_default_binary_dirs()
 xxx_configure_default_install_dirs()
 
-option(BUILD_TESTS "Build the tests" ON)
+option(BUILD_TESTING "Build the tests" ON)
 option(BUILD_EXAMPLES "Build the examples" ON)
 option(BUILD_BENCHMARK "Build the benchmarks" ON)
 option(BUILD_DOCUMENTATION "Build the documentation." OFF)
 option(INSTALL_DOCUMENTATION "Install the documentation" OFF)
 option(PROXSUITE_INSTALL "Generate the install target" ON)
-
-option(
-  EXTERNAL_DEPENDENCIES_USE_FIND_PACKAGE
-  "Use find_package to find external dependencies"
-  OFF
-)
-option(
-  EXTERNAL_DEPENDENCIES_USE_FETCHCONTENT
-  "Use FetchContent to get external dependencies"
-  ON
-)
 
 option(BUILD_PYTHON_INTERFACE "Build the Python bindings" ON)
 option(INITIALIZE_EIGEN_WITH_NAN "Initialize Eigen objects with NAN values" ON)
@@ -134,13 +121,15 @@ endif()
 
 
 # simde
-xxx_find_package(simde REQUIRED 
+xxx_find_package(simde REQUIRED
+    MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/simde
     EXPECTED_TARGETS simde::simde 
     DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
     EXPORT_IN_CONFIG)
 
 # matio
-xxx_find_package(matio REQUIRED 
+xxx_find_package(matio REQUIRED
+  MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/matio
   EXPECTED_TARGETS matio::matio
   DEPENDS_ON BUILD_TESTING PROJECT_IS_TOP_LEVEL
   EXPORT_IN_CONFIG
@@ -247,6 +236,5 @@ if(PROXSUITE_INSTALL)
   # Generate and install <package>-config.cmake, <package>-version.cmake and <package>-targets.cmake
   xxx_generate_cmake_module_files()
 endif()
-
 
 #xxx_print_dependency_summary()

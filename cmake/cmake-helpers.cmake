@@ -262,14 +262,15 @@ function(xxx_find_package)
     message(DEBUG "Executing xxx_find_package with args ${ARGV}")
 
     set(options EXPORT_IN_CONFIG)
-    set(oneValueArgs)
+    set(oneValueArgs MODULE_PATH)
     set(multiValueArgs EXPECTED_TARGETS DEPENDS_ON)    # Parse only EXPECTED_TARGET; leave everything else untouched
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
-    # message("   EXPECTED_TARGETS.  : ${arg_EXPECTED_TARGETS}")
+    # message("   EXPECTED_TARGETS   : ${arg_EXPECTED_TARGETS}")
+    # message("   MODULE_PATH        : ${arg_MODULE_PATH}")
     # message("   DEPENDS_ON         : ${arg_DEPENDS_ON}")
     # message("   UNPARSED_ARGUMENTS : ${arg_UNPARSED_ARGUMENTS}")
-    # message("   EXPORT_IN_CONFIG.  : ${arg_EXPORT_IN_CONFIG}")
+    # message("   EXPORT_IN_CONFIG   : ${arg_EXPORT_IN_CONFIG}")
 
     # Allow to skip find package
     set(skip False)
@@ -295,6 +296,18 @@ function(xxx_find_package)
     if(all_targets_available AND arg_EXPECTED_TARGETS)
         message("All expected targets from package '${ARGV0}' are already available, skipping find_package call.")
         return()
+    endif()
+
+    # Handle custom module file
+    if(arg_MODULE_PATH)
+        set(module_file "${arg_MODULE_PATH}/Find${ARGV0}.cmake")
+        # check if file exists
+        if(NOT EXISTS ${module_file})
+            message(FATAL_ERROR "Custom module file ${module_file} does not exist.")
+        endif()
+        # Add the parent path to the CMAKE_MODULE_PATH
+        list(APPEND CMAKE_MODULE_PATH ${arg_MODULE_PATH})
+        message("Using custom module file: ${module_file}")
     endif()
 
     # Call find_package with the provided arguments
@@ -323,6 +336,7 @@ function(xxx_find_package)
     # Save the package expected targets into a global summary property
     set_property(GLOBAL PROPERTY _xxx_${package_name}_expected_targets "${arg_EXPECTED_TARGETS}")
     set_property(GLOBAL PROPERTY _xxx_${package_name}_find_package_args "${arg_UNPARSED_ARGUMENTS}")
+    set_property(GLOBAL PROPERTY _xxx_${package_name}_module_path "${arg_MODULE_PATH}")
 
     # Check if the expected targets are available
     set(missing_targets "")
@@ -398,13 +412,21 @@ function(xxx_generate_cmake_module_files)
 
     set(${PROJECT_NAME}_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
+    set(modules "")
     set(fd "")
     foreach(package_name ${packages})
         # Try to find the _xxx_<package_name>_expected_targets property
         get_property(expected_targets GLOBAL PROPERTY _xxx_${package_name}_expected_targets)
         get_property(find_package_args GLOBAL PROPERTY _xxx_${package_name}_find_package_args)
+        get_property(module_path GLOBAL PROPERTY _xxx_${package_name}_module_path)
         string(REPLACE ";" " " find_package_args "${find_package_args}")
-        
+
+        # Custom Modules
+        if(module_path)
+            list(APPEND modules "list(APPEND CMAKE_MODULE_PATH \${CMAKE_CURRENT_LIST_DIR}/modules/${package_name})")
+        endif()
+
+        # Find Dependencies
         if(NOT expected_targets)
             list(APPEND fd "find_dependency(${find_package_args})")
         else()
@@ -423,8 +445,19 @@ function(xxx_generate_cmake_module_files)
 endif()
 ")
         endif()
+
+        # Custom Module file
+        set(module_file "${module_path}/Find${package_name}.cmake")
+        if(EXISTS "${module_file}")
+            install(
+                FILES ${module_file}
+                DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}/modules/${package_name}/
+            )
+        endif()
+
     endforeach()
 
+    string(REPLACE ";" "\n" xxx_modules "${modules}")
     string(REPLACE ";" "\n" xxx_find_dependencies "${fd}")
 
     # <package>-targets.cmake
