@@ -109,6 +109,13 @@ endif()
 if(BUILD_PYTHON_INTERFACE)
     xxx_find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development.Module EXPECTED_TARGETS Python::Interpreter Python::Module)
     get_target_property(Python_EXECUTABLE Python::Interpreter LOCATION)
+    # get the Python_SITELIB with sysconfig.get_path('purelib')
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('purelib'))"
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      OUTPUT_VARIABLE Python_SITELIB
+    )
+    message(STATUS "[proxsuite] Python site-packages directory: ${Python_SITELIB}")
     # Detect the installed nanobind package and import it into CMake
     # ref: https://nanobind.readthedocs.io/en/latest/building.html#finding-nanobind
     execute_process(
@@ -116,6 +123,7 @@ if(BUILD_PYTHON_INTERFACE)
       OUTPUT_STRIP_TRAILING_WHITESPACE
       OUTPUT_VARIABLE nanobind_ROOT
     )
+    message(STATUS "[proxsuite] nanobind cmake directory: ${nanobind_ROOT}")
     xxx_find_package(nanobind CONFIG REQUIRED)
 endif()
 
