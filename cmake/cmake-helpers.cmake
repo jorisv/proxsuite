@@ -298,13 +298,20 @@ function(xxx_find_package)
         return()
     endif()
 
+    # Pkg name is the first argument of find_package(<pkg_name> ...)
+    set(package_name ${ARGV0})
+
     # Handle custom module file
     if(arg_MODULE_PATH)
-        set(module_file "${arg_MODULE_PATH}/Find${ARGV0}.cmake")
+        set(module_file "${arg_MODULE_PATH}/Find${package_name}.cmake")
         # check if file exists
         if(NOT EXISTS ${module_file})
             message(FATAL_ERROR "Custom module file ${module_file} does not exist.")
         endif()
+
+        # Copy the module file to the generated cmake directory in the build dir
+        file(COPY ${module_file} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/modules/${package_name})
+
         # Add the parent path to the CMAKE_MODULE_PATH
         list(APPEND CMAKE_MODULE_PATH ${arg_MODULE_PATH})
         message("Using custom module file: ${module_file}")
@@ -410,7 +417,7 @@ function(xxx_generate_cmake_module_files)
         return()
     endif()
 
-    set(${PROJECT_NAME}_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    #set(${PROJECT_NAME}_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
     set(modules "")
     set(fd "")
@@ -446,14 +453,14 @@ endif()
 ")
         endif()
 
-        # Custom Module file
-        set(module_file "${module_path}/Find${package_name}.cmake")
-        if(EXISTS "${module_file}")
-            install(
-                FILES ${module_file}
-                DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}/modules/${package_name}/
-            )
-        endif()
+        # # Custom Module file
+        # set(module_file "${module_path}/Find${package_name}.cmake")
+        # if(EXISTS "${module_file}")
+        #     install(
+        #         FILES ${module_file}
+        #         DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}/modules/${package_name}/
+        #     )
+        # endif()
 
     endforeach()
 
@@ -470,7 +477,7 @@ endif()
     configure_package_config_file(
         ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake
-        INSTALL_DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
         NO_SET_AND_CHECK_MACRO
         NO_CHECK_REQUIRED_COMPONENTS_MACRO
     )
@@ -482,12 +489,17 @@ endif()
     )
 
     # Install the 3 cmake module files
+    # install(
+    #     FILES
+    #         ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake
+    #         ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-version.cmake
+    #         ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake
+    #     DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}
+    # )
     install(
-        FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-version.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake
-        DESTINATION ${${PROJECT_NAME}_INSTALL_CONFIGDIR}
+        DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
+        FILES_MATCHING PATTERN "*.cmake"
     )
 endfunction()
 
