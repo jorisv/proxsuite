@@ -548,20 +548,42 @@ function(xxx_install_target target_name)
     )
 endfunction()
 
-# xxx_option(<option_name> <default_value> <description>)
-# Example: xxx_option(BUILD_TESTING ON "Build the tests")
+# xxx_option(<option_name> <description> <default_value>)
+# Example: xxx_option(BUILD_TESTING "Build the tests" ON)
 # Override cmake option() to get a nice summary at the end of the configuration step
-function(xxx_option option_name default_value description)
-    option(${option_name} "${description}" ${default_value})
-
+function(xxx_option option_name description default_value)
+    option(${ARGV})
     # Save the option into a global property for later summary
     get_property(options GLOBAL PROPERTY _xxx_project_options)
     if(NOT options)
         set(options "")
     endif()
+    # Save the default value in a property
+    set_property(GLOBAL PROPERTY _xxx_${option_name}_default_value ${default_value})
+
+    # Save the option name in the list
     list(APPEND options "${option_name}")
     list(REMOVE_DUPLICATES options)
     set_property(GLOBAL PROPERTY _xxx_project_options ${options})
+endfunction()
+
+# Helper function: pad or truncate a string to a fixed width
+function(pad_string input width output_var)
+    string(LENGTH "${input}" _len)
+    if(_len GREATER width)
+        # Truncate if too long
+        string(SUBSTRING "${input}" 0 ${width} _padded)
+    else()
+        # Pad with spaces until desired width
+        math(EXPR _pad "${width} - ${_len}")
+        set(_spaces "")
+        while(_pad GREATER 0)
+            string(APPEND _spaces " ")
+            math(EXPR _pad "${_pad} - 1")
+        endwhile()
+        set(_padded "${input}${_spaces}")
+    endif()
+    set(${output_var} "${_padded}" PARENT_SCOPE)
 endfunction()
 
 function(xxx_print_option_summary)
@@ -571,13 +593,35 @@ function(xxx_print_option_summary)
         return()
     endif()
 
-    message("Options defined via xxx_option:")
-    foreach(option_name ${options})
-        get_property(option_value CACHE ${option_name} PROPERTY VALUE)
-        get_property(option_type CACHE ${option_name} PROPERTY TYPE)
-        get_property(option_doc CACHE ${option_name} PROPERTY HELPSTRING)
-        message("    ${option_name}:${option_type}:=${option_value}  (default: ${option_doc})")
+    # Prepare pretty output
+    message( "")
+    message( "================= Configuration Summary ======================================")
+    message( "")    
+    pad_string("Option"      40 _menu_option)
+    pad_string("Type"        5  _menu_type)
+    pad_string("Value"       8  _menu_value)
+    pad_string("Default"     5  _menu_default)
+    pad_string("Description (default)" 25 _menu_description)
+    message( "${_menu_option} | ${_menu_type} | ${_menu_value} | ${_menu_description}")
+    message( "------------------------------------------------------------------------------")
+
+    foreach(_opt ${options})
+        get_property(_type CACHE ${_opt} PROPERTY TYPE)
+        get_property(_val CACHE ${_opt} PROPERTY VALUE)
+        get_property(_default GLOBAL PROPERTY _xxx_${_opt}_default_value)
+        get_property(_help CACHE ${_opt} PROPERTY HELPSTRING)
+
+        pad_string("${_opt}"      40 _name)
+        pad_string("${_type}"     5 _type)
+        pad_string("${_val}"      8 _val)
+        pad_string("${_default}"  5 _default)
+        pad_string("${_help}"     25 _help)
+
+        message( "${_name} | ${_type} | ${_val} | ${_help} (${_default})")
     endforeach()
+
+    message( "----------------------------------------------------------")
+    message( "")
 endfunction()
 
 # gersemi: on
