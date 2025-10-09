@@ -548,4 +548,36 @@ function(xxx_install_target target_name)
     )
 endfunction()
 
+# xxx_option(<option_name> <default_value> <description>)
+# Example: xxx_option(BUILD_TESTING ON "Build the tests")
+# Override cmake option() to get a nice summary at the end of the configuration step
+function(xxx_option option_name default_value description)
+    option(${option_name} "${description}" ${default_value})
+
+    # Save the option into a global property for later summary
+    get_property(options GLOBAL PROPERTY _xxx_project_options)
+    if(NOT options)
+        set(options "")
+    endif()
+    list(APPEND options "${option_name}")
+    list(REMOVE_DUPLICATES options)
+    set_property(GLOBAL PROPERTY _xxx_project_options ${options})
+endfunction()
+
+function(xxx_print_option_summary)
+    get_property(options GLOBAL PROPERTY _xxx_project_options)
+    if(NOT options)
+        message(STATUS "No options defined via xxx_option.")
+        return()
+    endif()
+
+    message("Options defined via xxx_option:")
+    foreach(option_name ${options})
+        get_property(option_value CACHE ${option_name} PROPERTY VALUE)
+        get_property(option_type CACHE ${option_name} PROPERTY TYPE)
+        get_property(option_doc CACHE ${option_name} PROPERTY HELPSTRING)
+        message("    ${option_name}:${option_type}:=${option_value}  (default: ${option_doc})")
+    endforeach()
+endfunction()
+
 # gersemi: on

@@ -22,38 +22,38 @@ xxx_configure_default_install_prefix("${CMAKE_BINARY_DIR}/install")
 xxx_configure_default_binary_dirs()
 xxx_configure_default_install_dirs()
 
-option(BUILD_TESTING "Build the tests" ON)
-option(BUILD_EXAMPLES "Build the examples" ON)
-option(BUILD_BENCHMARK "Build the benchmarks" ON)
-option(BUILD_DOCUMENTATION "Build the documentation." OFF)
-option(INSTALL_DOCUMENTATION "Install the documentation" OFF)
-option(PROXSUITE_INSTALL "Generate the install target" ON)
+xxx_option(BUILD_TESTING "Build the tests" ON)
+xxx_option(BUILD_EXAMPLES "Build the examples" ON)
+xxx_option(BUILD_BENCHMARK "Build the benchmarks" ON)
+xxx_option(BUILD_DOCUMENTATION "Build the documentation." OFF)
+xxx_option(INSTALL_DOCUMENTATION "Install the documentation" OFF)
+xxx_option(PROXSUITE_INSTALL "Generate the install target" ON)
 
-option(BUILD_PYTHON_INTERFACE "Build the Python bindings" ON)
-option(INITIALIZE_EIGEN_WITH_NAN "Initialize Eigen objects with NAN values" ON)
-option(
+xxx_option(BUILD_PYTHON_INTERFACE "Build the Python bindings" ON)
+xxx_option(INITIALIZE_EIGEN_WITH_NAN "Initialize Eigen objects with NAN values" ON)
+xxx_option(
   CHECK_RUNTIME_MALLOC
   "Check if some memory allocations are performed at runtime"
   OFF
 )
-option(SUFFIX_SO_VERSION "Suffix library name with its version" ON)
-option(
+xxx_option(SUFFIX_SO_VERSION "Suffix library name with its version" ON)
+xxx_option(
   BUILD_WITH_VECTORIZATION_SUPPORT
   "Build the library with the support of modern SIMD instructions."
   ON
 )
-option(
+xxx_option(
   BUILD_BINDINGS_WITH_AVX2_SUPPORT
   "Build the bindings with AVX2 support."
   OFF
 )
-option(
+xxx_option(
   BUILD_BINDINGS_WITH_AVX512_SUPPORT
   "Build the bindings with AVX512 support."
   OFF
 )
-option(TEST_JULIA_INTERFACE "Run the julia examples as unittest" OFF)
-option(BUILD_WITH_OPENMP_SUPPORT "Build the library with the OpenMP support" ON)
+xxx_option(TEST_JULIA_INTERFACE "Run the julia examples as unittest" OFF)
+xxx_option(BUILD_WITH_OPENMP_SUPPORT "Build the library with the OpenMP support" ON)
 cmake_dependent_option(
   LINK_PYTHON_INTERFACE_TO_OPENMP
   "Link OpenMP to the Python interface"
@@ -68,8 +68,8 @@ cmake_dependent_option(
   BUILD_PYTHON_INTERFACE
   ON
 )
-option(GENERATE_PYTHON_STUBS "Generate Python stubs" OFF)
-option(
+xxx_option(GENERATE_PYTHON_STUBS "Generate Python stubs" OFF)
+xxx_option(
   PYTHON_BINDING_CUSTOM_INSTALL_DIR
   "Override the default <current-python-install-sitelib>/<project-name>"
   ""
@@ -239,3 +239,4 @@ if(PROXSUITE_INSTALL)
 endif()
 
 #xxx_print_dependency_summary()
+xxx_print_option_summary()
