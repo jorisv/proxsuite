@@ -125,7 +125,8 @@ xxx_find_package(simde REQUIRED
     MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/simde
     EXPECTED_TARGETS simde::simde 
     DEPENDS_ON BUILD_WITH_VECTORIZATION_SUPPORT
-    EXPORT_IN_CONFIG)
+    EXPORT_IN_CONFIG 
+)
 
 # matio
 xxx_find_package(matio REQUIRED

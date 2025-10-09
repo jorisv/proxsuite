@@ -468,9 +468,18 @@ endif()
     string(REPLACE ";" "\n" xxx_find_dependencies "${fd}")
 
     # <package>-targets.cmake
+    # Note: generate the export targets for the build tree. Note: The file created by this command 
+    # is specific to the build tree and should never be installed!
     export(EXPORT ${PROJECT_NAME}-targets
-        FILE ${CMAKE_CURRENT_BINARY_DIR}/generated/cmake/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake
+        FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake
         NAMESPACE ${PROJECT_NAME}::
+    )
+    # Note: This needs to be done after all install(TARGETS ...) commands!
+    # generate and install export targets file
+    install(EXPORT ${PROJECT_NAME}-targets
+        FILE ${PROJECT_NAME}-targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
     )
 
     # <package>-config.cmake
