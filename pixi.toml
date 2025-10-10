@@ -10,6 +10,9 @@ ccache = ">=4.9.1"
 cmake = ">=3.22"
 cxx-compiler = ">=1.7.0"
 ninja = ">=1.11"
+nanobind = "*"
+pip = "*"
+scikit-build-core = "*"
 
 [dependencies]
 eigen = ">=3.4.0,<4"
