@@ -20,7 +20,7 @@ build-backend = "scikit_build_core.build"
 
 # Our Python module is not in a standard directory
 [tool.scikit-build]
-wheel.packages = ["bindings/python/proxsuite"]
+wheel.packages = { "proxsuite" = "bindings/python/proxsuite" }
 
 [tool.scikit-build.cmake.define]
 BUILD_PYTHON_INTERFACE = true
@@ -29,9 +29,3 @@ PYTHON_BINDING_CUSTOM_INSTALL_DIR = "proxsuite"
 [tool.ruff.lint]
 ignore = ["E741"]
 exclude = ["cmake-module/*", "bindings/python/external/nanobind/*"]
-
-[tool.pytest.ini_options]
-testpaths = [
-    "test/src"
-]
-python_files = "*.py"
