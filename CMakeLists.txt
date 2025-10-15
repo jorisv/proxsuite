@@ -11,13 +11,17 @@ project(
 )
 
 # Import CMake-provided helper functions
+# REVIEW: comment what is doeing CTEST_TARGET_ADDED
 set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
 include(CTest)
 include(CMakeDependentOption)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-helpers.cmake)
+# REVIEW: Release
 xxx_configure_default_build_type(RelWithDebInfo)
+# REVIEW: We were not doing that before
 xxx_configure_default_install_prefix("${CMAKE_BINARY_DIR}/install")
+# REVIEW: On super project this will install all in the same directory. Is it OK ?
 xxx_configure_default_binary_dirs()
 xxx_configure_default_install_dirs()
 
@@ -80,6 +84,7 @@ xxx_option(
 ############################################################
 
 # Eigen3
+# REVIEW: You keep the EXPECTED_TARGETS ?
 xxx_find_package(Eigen3 3.4.0 CONFIG REQUIRED EXPECTED_TARGETS Eigen3::Eigen)
 
 # Catch2
@@ -96,6 +101,7 @@ endif()
 # nanobind (Python bindings)
 if(BUILD_PYTHON_INTERFACE)
     xxx_find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development.Module EXPECTED_TARGETS Python::Interpreter Python::Module)
+    # REVIEW: Why not use Python_EXECUTABLE from Python module ?
     get_target_property(Python_EXECUTABLE Python::Interpreter LOCATION)
     # Python_SITELIB with sysconfig.get_path('purelib')
     execute_process(
@@ -202,6 +208,8 @@ if(BUILD_WITH_SERIALIZATION)
   target_link_libraries(proxsuite-serialization INTERFACE proxsuite cereal::cereal)
 endif()
 
+# REVIEW: Why deactivating tests if project is not top level ?
+# FetchContent ? Super project should not call project, is it an issue ?
 if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
   message(STATUS "[proxsuite] Building tests")
   add_subdirectory(test)

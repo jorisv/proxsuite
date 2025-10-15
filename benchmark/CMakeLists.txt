@@ -12,6 +12,7 @@ target_link_libraries(timings-diagonal-hessian PRIVATE proxsuite)
 add_executable(timings-lp timings-lp.cpp)
 target_link_libraries(timings-lp PRIVATE proxsuite)
 
+# REVIEW: only if vectorized is activated ?
 add_executable(timings-box-constraints-vectorized timings-box-constraints.cpp)
 target_link_libraries(
   timings-box-constraints-vectorized

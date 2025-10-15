@@ -1,5 +1,6 @@
 project(proxsuite-tests)
 
+# REVIEW: Why ?
 # gersemi: off
 
 add_library(proxsuite-test-util STATIC
@@ -9,6 +10,7 @@ add_library(proxsuite-test-util STATIC
 target_include_directories(proxsuite-test-util PRIVATE include)
 target_link_libraries(proxsuite-test-util PUBLIC proxsuite)
 
+# REVIEW: only if vectorized is activated ?
 add_library(proxsuite-test-util-vectorized STATIC
     src/util_f64.cpp
     src/util_f32.cpp
@@ -38,6 +40,7 @@ proxsuite_add_test(NAME proxsuite-test-cpp-sparse-qb-wrapper SOURCES src/sparse_
 proxsuite_add_test(NAME proxsuite-test-cpp-sparse-qb SOURCES src/sparse_qp.cpp INCLUDE_DIRECTORIES include LINK_LIBRARIES proxsuite-test-util)
 proxsuite_add_test(NAME proxsuite-test-cpp-sparse-ruiz-equilibration SOURCES src/sparse_ruiz_equilibration.cpp INCLUDE_DIRECTORIES include LINK_LIBRARIES proxsuite-test-util)
 
+# REVIEW: only if vectorized is activated ?
 # Vectorized tests
 proxsuite_add_test(NAME proxsuite-test-cpp-dense_backward-vectorized SOURCES src/dense_backward.cpp INCLUDE_DIRECTORIES include LINK_LIBRARIES proxsuite-test-util-vectorized)
 proxsuite_add_test(NAME proxsuite-test-cpp-dense-qb-eq-vectorized SOURCES src/dense_qp_eq.cpp INCLUDE_DIRECTORIES include LINK_LIBRARIES proxsuite-test-util-vectorized)

@@ -47,6 +47,7 @@ endfunction()
 function(xxx_configure_default_binary_dirs)
     # On windows, librairies (.dll, .lib) and executables (.exe) are in the same directory
     # On unix, we separate them in bin/ and lib/
+    # REVIEW: Should be ${CMAKE_BINARY_DIR}/bin ?
     if(WIN32)
         set(bin_dir ${CMAKE_BINARY_DIR})
         set(lib_dir ${CMAKE_BINARY_DIR})
@@ -82,6 +83,7 @@ endfunction()
 
 
 function(xxx_configure_default_install_prefix default_install_prefix)
+    # REVIEW: Why this guard ?
     if(NOT default_install_prefix)
         message(FATAL_ERROR "Use: xxx_configure_default_install_prefix(<default_install_prefix>)")
     endif()
@@ -169,6 +171,8 @@ function(xxx_target_set_default_compile_options target_name visibility)
         set(CXX_COMPILER_ID "MSVC")
     endif()
 
+    # REVIEW: is it working ? CXX_COMPILER_ID is changed in the function
+    # but when is evaluated the generator expression ?
     target_compile_options(${target_name} ${visibility}
         $<$<CXX_COMPILER_ID:MSVC>:
             /W4     # Enable most warnings
@@ -224,6 +228,7 @@ function(xxx_target_treat_all_warnings_as_errors target_name visibility)
         message(FATAL_ERROR "visibility must be one of PRIVATE, PUBLIC or INTERFACE")
     endif()
 
+    # REVIEW: CXX_COMPILER_ID is unchanged
     target_compile_options(${target_name} ${visibility}
         $<$<CXX_COMPILER_ID:MSVC>:/WX>
         $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror>
